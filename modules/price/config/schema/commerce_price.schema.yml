@@ -29,6 +29,17 @@ field.value.commerce_price:
       type: string
       label: 'Currency code'
 
+field.field_settings.commerce_price:
+  type: mapping
+  label: 'Price field settings'
+  mapping:
+    available_currencies:
+      type: sequence
+      label: 'Available currencies'
+      orderby: value
+      sequence:
+        type: string
+
 field.formatter.settings.commerce_price_default:
   type: mapping
   label: 'Default price formatter settings'
@@ -50,3 +61,10 @@ field.formatter.settings.commerce_price_calculated:
     display_currency_code:
       type: boolean
       label: 'Display the currency code instead of the currency symbol'
+    # Needed by the commerce_order version of the formatter.
+    adjustment_types:
+      type: sequence
+      label: 'Adjustment types'
+      sequence:
+        type: string
+        label: 'Adjustment type'

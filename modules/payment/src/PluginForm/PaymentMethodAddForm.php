@@ -11,6 +11,20 @@ use Drupal\profile\Entity\Profile;
 class PaymentMethodAddForm extends PaymentGatewayFormBase {
 
   /**
+   * The route match.
+   *
+   * @var \Drupal\Core\Routing\RouteMatchInterface
+   */
+  protected $routeMatch;
+
+  /**
+   * Constructs a new PaymentMethodAddForm.
+   */
+  public function __construct() {
+    $this->routeMatch = \Drupal::service('current_route_match');
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function getErrorElement(array $form, FormStateInterface $form_state) {
@@ -41,15 +55,30 @@ class PaymentMethodAddForm extends PaymentGatewayFormBase {
     /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method */
     $payment_method = $this->entity;
     /** @var \Drupal\profile\Entity\ProfileInterface $billing_profile */
-    $billing_profile = Profile::create([
-      'type' => 'customer',
-      'uid' => $payment_method->getOwnerId(),
-    ]);
+    $billing_profile = $payment_method->getBillingProfile();
+    if (!$billing_profile) {
+      /** @var \Drupal\profile\Entity\ProfileInterface $billing_profile */
+      $billing_profile = Profile::create([
+        'type' => 'customer',
+        'uid' => $payment_method->getOwnerId(),
+      ]);
+    }
+
+    if ($order = $this->routeMatch->getParameter('commerce_order')) {
+      $store = $order->getStore();
+    }
+    else {
+      /** @var \Drupal\commerce_store\StoreStorageInterface $store_storage */
+      $store_storage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+      $store = $store_storage->loadDefault();
+    }
 
     $form['billing_information'] = [
       '#parents' => array_merge($form['#parents'], ['billing_information']),
       '#type' => 'commerce_profile_select',
       '#default_value' => $billing_profile,
+      '#default_country' => $store ? $store->getAddress()->getCountryCode() : NULL,
+      '#available_countries' => $store ? $store->getBillingCountries() : [],
     ];
 
     return $form;
@@ -97,11 +126,11 @@ class PaymentMethodAddForm extends PaymentGatewayFormBase {
     }
     catch (DeclineException $e) {
       \Drupal::logger('commerce_payment')->warning($e->getMessage());
-      throw new DeclineException('We encountered an error processing your payment method. Please verify your details and try again.');
+      throw new DeclineException(t('We encountered an error processing your payment method. Please verify your details and try again.'));
     }
     catch (PaymentGatewayException $e) {
       \Drupal::logger('commerce_payment')->error($e->getMessage());
-      throw new PaymentGatewayException('We encountered an unexpected error processing your payment method. Please try again later.');
+      throw new PaymentGatewayException(t('We encountered an unexpected error processing your payment method. Please try again later.'));
     }
   }
 

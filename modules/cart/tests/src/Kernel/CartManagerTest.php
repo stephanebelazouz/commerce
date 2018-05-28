@@ -6,7 +6,6 @@ use Drupal\commerce_order\Entity\OrderItem;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
-use Drupal\commerce_store\Entity\Store;
 use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
 
 /**
@@ -16,6 +15,8 @@ use Drupal\Tests\commerce\Kernel\CommerceKernelTestBase;
  * @group commerce
  */
 class CartManagerTest extends CommerceKernelTestBase {
+
+  use CartManagerTestTrait;
 
   /**
    * The cart manager.
@@ -97,24 +98,6 @@ class CartManagerTest extends CommerceKernelTestBase {
   }
 
   /**
-   * Install commerce cart.
-   *
-   * Due to issues with hook_entity_bundle_create, we need to run this manually
-   * and cannot add commerce_cart to the $modules property.
-   *
-   * @see https://www.drupal.org/node/2711645
-   *
-   * @todo patch core so it doesn't explode in Kernel tests.
-   */
-  protected function installCommerceCart() {
-    $this->enableModules(['commerce_cart']);
-    $this->installConfig('commerce_cart');
-    $this->container->get('entity.definition_update_manager')->applyUpdates();
-    $this->cartProvider = $this->container->get('commerce_cart.cart_provider');
-    $this->cartManager = $this->container->get('commerce_cart.cart_manager');
-  }
-
-  /**
    * Tests the cart manager.
    *
    * @covers ::addEntity
@@ -133,8 +116,9 @@ class CartManagerTest extends CommerceKernelTestBase {
 
     $order_item1 = $this->cartManager->addEntity($cart, $this->variation1);
     $order_item1 = $this->reloadEntity($order_item1);
-    $this->assertEquals([$order_item1], $cart->getItems());
+    $this->assertNotEmpty($cart->hasItem($order_item1));
     $this->assertEquals(1, $order_item1->getQuantity());
+    $this->assertEquals($cart->id(), $order_item1->getOrderId());
     $this->assertEquals(new Price('1.00', 'USD'), $cart->getTotalPrice());
 
     $order_item1->setQuantity(2);
@@ -148,6 +132,7 @@ class CartManagerTest extends CommerceKernelTestBase {
     $this->assertNotEmpty($cart->hasItem($order_item1));
     $this->assertNotEmpty($cart->hasItem($order_item2));
     $this->assertEquals(3, $order_item2->getQuantity());
+    $this->assertEquals($cart->id(), $order_item2->getOrderId());
     $this->assertEquals(new Price('8.00', 'USD'), $cart->getTotalPrice());
 
     $this->cartManager->removeOrderItem($cart, $order_item1);
@@ -157,11 +142,11 @@ class CartManagerTest extends CommerceKernelTestBase {
 
     $this->cartManager->emptyCart($cart);
     $this->assertEmpty($cart->getItems());
-    $this->assertEquals(new Price('0.00', 'USD'), $cart->getTotalPrice());
+    $this->assertEquals(NULL, $cart->getTotalPrice());
   }
 
   /**
-   * Tests that order items without purchaseable entity do not cause crashes.
+   * Tests that order items without purchasable entities do not cause crashes.
    */
   public function testAddOrderItem() {
     $this->installCommerceCart();

@@ -3,7 +3,6 @@
 namespace Drupal\Tests\commerce_store\FunctionalJavascript;
 
 use Drupal\commerce_store\Entity\Store;
-use Drupal\commerce_store\StoreCreationTrait;
 use Drupal\Tests\commerce\Functional\CommerceBrowserTestBase;
 use Drupal\Tests\commerce\FunctionalJavascript\JavascriptTestTrait;
 
@@ -14,15 +13,7 @@ use Drupal\Tests\commerce\FunctionalJavascript\JavascriptTestTrait;
  */
 class StoreTest extends CommerceBrowserTestBase {
 
-  use StoreCreationTrait;
   use JavascriptTestTrait;
-
-  /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = ['block', 'commerce_store'];
 
   /**
    * A store type entity to use in the tests.
@@ -36,8 +27,6 @@ class StoreTest extends CommerceBrowserTestBase {
    */
   protected function getAdministratorPermissions() {
     return array_merge([
-      'administer commerce_store_type',
-      'administer commerce_store',
       'access commerce_store overview',
     ], parent::getAdministratorPermissions());
   }
@@ -46,7 +35,7 @@ class StoreTest extends CommerceBrowserTestBase {
    * Tests creating a store.
    */
   public function testCreateStore() {
-    $this->drupalGet('admin/commerce/stores');
+    $this->drupalGet('admin/commerce/config/stores');
     $this->getSession()->getPage()->clickLink('Add store');
 
     // Check the integrity of the form.
